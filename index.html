@@ -191,9 +191,9 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--pr
   </main>
 </div>
 
-<!-- Supabase JS + Chart.js（使用 jsDelivr CDN，国内可访问） -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.106.1/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<!-- Supabase JS + Chart.js（本地文件，不依赖 CDN） -->
+<script src="supabase.js"></script>
+<script src="chart.min.js"></script>
 
 <script>
 // ============================================================
@@ -205,13 +205,15 @@ var supabase = null;
 var currentUser = null;
 var currentRole = 'staff';
 
-// 立即初始化 Supabase
-if (typeof window.supabase !== 'undefined') {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log('Supabase 初始化成功');
-} else {
-  console.error('Supabase 库未加载');
-}
+// 等待所有脚本加载完成后再初始化 Supabase
+window.addEventListener('load', function() {
+  if (typeof window.supabase !== 'undefined') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase 初始化成功');
+  } else {
+    console.error('Supabase 库未加载');
+  }
+});
 
 // ============================================================
 //  登录/注册

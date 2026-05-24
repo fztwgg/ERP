@@ -205,15 +205,22 @@ var supabase = null;
 var currentUser = null;
 var currentRole = 'staff';
 
-// 等待所有脚本加载完成后再初始化 Supabase
-window.addEventListener('load', function() {
+// 立即初始化 Supabase（supabase.js 已在上方加载）
+(function() {
   if (typeof window.supabase !== 'undefined') {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('Supabase 初始化成功');
   } else {
-    console.error('Supabase 库未加载');
+    console.error('Supabase 库未加载！window.supabase = ' + typeof window.supabase);
+    setTimeout(function() {
+      if (typeof window.supabase !== 'undefined' && !supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('Supabase 延迟初始化成功');
+      }
+    }, 2000);
   }
-});
+})();
+
 
 // ============================================================
 //  登录/注册

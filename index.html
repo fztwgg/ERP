@@ -130,6 +130,17 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--pr
 .empty-state{text-align:center;padding:48px 20px;color:#94a3b8}
 .empty-state .empty-icon{font-size:48px;margin-bottom:12px}
 
+/* 订单明细表格 - 高行高 */
+#omItemsTbody td{padding:6px 6px}
+#omItemsTbody input{padding:8px 6px;font-size:14px}
+
+/* 打印样式 */
+@media print{
+  #sidebar,#mainContent .page-header,#mainContent .tabs,#mainContent .search-bar,.btn,.modal-overlay{display:none!important}
+  #mainContent{margin-left:0!important;padding:0!important}
+  .card{box-shadow:none!important;border:1px solid #ddd}
+}
+
 /* 响应式 */
 @media(max-width:768px){
   :root{--sidebar-w:60px}
@@ -172,6 +183,7 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--pr
   <nav id="sidebar">
     <div class="logo">📋 ERP 系统</div>
     <ul class="nav-list">
+      <li><a href="#" onclick="openOrderModal();return false;" class="nav-item" id="navNewOrder"><span class="nav-icon">➕</span><span>新建订单</span></a></li>
       <li><a href="#" data-page="orders" class="nav-item"><span class="nav-icon">📋</span><span>订单管理</span></a></li>
       <li><a href="#" data-page="dashboard" class="nav-item"><span class="nav-icon">📊</span><span>工作台</span></a></li>
       <li><a href="#" data-page="customers" class="nav-item"><span class="nav-icon">👥</span><span>客户管理</span></a></li>
@@ -415,14 +427,17 @@ pageRenderers.dashboard = function() {
 };
 
 function loadDashboard() {
-  // 统计
   var today = todayStr();
-  supabase.from('orders').select('status,total_amount').then(function(oRes){
+  supabase.from('orders').select('status,total_amount,created_at,order_date').then(function(oRes){
     var orders=oRes.data||[];
-    var todayCount=0,productionCount=0,deliveredCount=0,totalRevenue=0;
+    var todayCount=0,productionCount=0,deliveredCount=0,todayRevenue=0;
     for (var i=0;i<orders.length;i++) {
       var o=orders[i];
-      totalRevenue+=Number(o.total_amount||0);
+      var oDate=formatDate(o.order_date||o.created_at);
+      if (oDate===today) {
+        todayRevenue+=Number(o.total_amount||0);
+        todayCount++;
+      }
       if (o.status==='生产中') productionCount++;
       if (o.status==='已送货') deliveredCount++;
     }
@@ -430,8 +445,7 @@ function loadDashboard() {
       '<div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value">'+orders.length+'</div><div class="stat-label">总订单数</div></div></div>'+
       '<div class="stat-card"><div class="stat-icon orange">⚙</div><div><div class="stat-value">'+productionCount+'</div><div class="stat-label">生产中</div></div></div>'+
       '<div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">'+deliveredCount+'</div><div class="stat-label">已送货</div></div></div>'+
-      '<div class="stat-card"><div class="stat-icon purple">💰</div><div><div class="stat-value">'+formatMoney(totalRevenue)+'</div><div class="stat-label">总营业额</div></div></div>';
-    // 图表
+      '<div class="stat-card"><div class="stat-icon purple">💰</div><div><div class="stat-value">'+formatMoney(todayRevenue)+'</div><div class="stat-label">当日营业额</div></div></div>';
     drawChart(orders);
   });
 }
@@ -489,9 +503,9 @@ pageRenderers.orders = function() {
 
 function loadOrders() {
   var q = supabase.from('orders').select('*').order('created_at',{ascending:false});
-  if (ordersTab==='today') { var t=todayStr(); q=q.gte('created_at',t).lt('created_at',t+'T23:59:59'); }
-  else if (ordersTab==='yesterday') { var y=daysAgo(1); q=q.gte('created_at',y).lt('created_at',y+'T23:59:59'); }
-  else if (ordersTab==='week') q=q.gte('created_at',daysAgo(7));
+  if (ordersTab==='today') { var t=todayStr(); q=q.eq('order_date',t); }
+  else if (ordersTab==='yesterday') { q=q.eq('order_date',daysAgo(1)); }
+  else if (ordersTab==='week') q=q.gte('order_date',daysAgo(6));
   // 搜索过滤将在客户端进行（支持中文输入）
   q.then(function(res){
     if (res.error) { console.error(res.error); return; }
@@ -539,6 +553,9 @@ function renderOrdersTable() {
 
 function switchOrderTab(tab, el) {
   ordersTab=tab;
+  ordersSearchText='';
+  var searchEl=document.getElementById('orderSearch');
+  if (searchEl) searchEl.value='';
   var btns=document.querySelectorAll('.tab-btn');
   for (var i=0;i<btns.length;i++) btns[i].classList.remove('active');
   if (el) el.classList.add('active');
@@ -596,10 +613,19 @@ function batchSettle() {
 }
 
 function exportOrders() {
-  var rows=[['订单编号','开单日期','客户','联系人','项目名称','金额','生产状态','收款状态']];
+  var rows=[['订单编号','开单日期','客户','联系人','项目名称','制作要求','服务项目','数量','份数','单价','金额','录单人','备注','生产状态','收款状态','总金额']];
   for (var i=0;i<ordersData.length;i++) {
     var o=ordersData[i];
-    rows.push([o.order_no,formatDate(o.order_date),o.customer_name||'',o.contact_name||'',o.project_name||'',o.total_amount,o.status||'',o.payment_status||'']);
+    var items=[];
+    try { items=typeof o.items==='string'?JSON.parse(o.items):(o.items||[]); } catch(e){ items=[]; }
+    if (items.length===0) {
+      rows.push([o.order_no,formatDate(o.order_date),o.customer_name||'',o.contact_name||'',o.project_name||'',o.production_req||'','','','','','','','',o.status||'',o.payment_status||'',o.total_amount]);
+    } else {
+      for (var j=0;j<items.length;j++) {
+        var it=items[j];
+        rows.push([o.order_no,formatDate(o.order_date),o.customer_name||'',o.contact_name||'',o.project_name||'',o.production_req||'',it.service||'',it.qty||0,it.copies||1,it.price||0,it.amount||0,it.recorder||'',it.note||'',o.status||'',o.payment_status||'',o.total_amount]);
+      }
+    }
   }
   downloadCsv(rows,'订单导出_'+todayStr()+'.csv');
 }
@@ -626,28 +652,25 @@ function openOrderModal(id) {
   h+='<div class="form-row">';
   h+='<div class="form-group"><label>项目名称（50字内）</label><input type="text" id="omProject" maxlength="50" placeholder="请输入项目名称"></div>';
   h+='</div>';
-  h+='<div class="form-group"><label>生产要求</label><textarea id="omReq" placeholder="请输入生产要求..."></textarea></div>';
-
-  // 订单明细
-  h+='<h3 style="margin:20px 0 12px">订单明细</h3>';
-  h+='<div class="table-wrap" style="margin-bottom:10px"><table><thead><tr><th>服务项目</th><th>数量</th><th>份数</th><th>单价</th><th>金额</th><th>录单人</th><th>备注</th><th>操作</th></tr></thead><tbody id="omItemsTbody"></tbody></table></div>';
-  h+='<button class="btn btn-outline btn-sm" onclick="addOrderItem()">+ 添加明细</button>';
-  h+='<div style="text-align:right;margin-top:12px;font-size:16px;font-weight:700">合计：<span id="omTotal">¥0.00</span></div>';
-
-  // 生产状态 + 进度条
-  h+='<h3 style="margin:20px 0 12px">生产进度</h3>';
-  h+='<div class="progress-steps">';
+  h+='<div class="form-row" style="grid-template-columns:1fr auto"><div class="form-group"><label>制作要求</label><textarea id="omReq" placeholder="请输入制作要求..." style="height:65px"></textarea></div><div style="min-width:260px"><label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px;color:#475569">生产进度</label><div class="progress-steps" style="font-size:11px;margin-bottom:0">';
   h+='<div class="progress-step" id="ps1" onclick="setOrderStatus(\'待确认\')">待确认</div>';
   h+='<div class="progress-step" id="ps2" onclick="setOrderStatus(\'生产中\')">生产中</div>';
   h+='<div class="progress-step" id="ps3" onclick="setOrderStatus(\'已完工\')">已完工</div>';
   h+='<div class="progress-step" id="ps4" onclick="setOrderStatus(\'已送货\')">已送货</div>';
-  h+='</div>';
+  h+='</div></div></div>';
   h+='<input type="hidden" id="omStatus" value="待确认">';
   h+='<input type="hidden" id="omPaymentStatus" value="未结算">';
+
+  // 订单明细
+  h+='<h3 style="margin:20px 0 12px">订单明细</h3>';
+  h+='<div class="table-wrap" style="margin-bottom:10px"><table><thead><tr><th width="50">操作</th><th>服务项目</th><th width="65">数量</th><th width="65">份数</th><th width="85">单价</th><th width="80">金额</th><th width="70">录单人</th><th width="90">备注</th></tr></thead><tbody id="omItemsTbody"></tbody></table></div>';
+  h+='<button class="btn btn-outline btn-sm" onclick="addOrderItem()">+ 添加明细</button>';
+  h+='<div style="text-align:right;margin-top:12px;font-size:16px;font-weight:700">合计：<span id="omTotal">¥0.00</span></div>';
 
   h+='</div><div class="modal-footer">';
   h+='<button class="btn btn-outline" onclick="closeOrderModal()">取消</button>';
   h+='<button class="btn btn-primary" id="btnSaveOrder" onclick="saveOrder()">保存</button>';
+  h+='<button class="btn btn-outline" id="btnPrintOrder" onclick="printOrder()">🖨 打印</button>';
   h+='</div></div></div>';
 
   document.getElementById('pageContent').insertAdjacentHTML('beforeend',h);
@@ -701,7 +724,8 @@ function fillOrderForm(o) {
 }
 
 function addOrderItem() {
-  orderModalItems.push({service:'',qty:1,copies:1,price:0,amount:0,recorder:'',note:''});
+  var recorder = currentUser ? currentUser.email.split('@')[0] : '';
+  orderModalItems.push({service:'',qty:1,copies:1,price:0,amount:0,recorder:recorder,note:''});
   renderOrderItems();
 }
 
@@ -729,17 +753,17 @@ function renderOrderItems() {
     var amt=Number(it.amount)||0;
     total+=amt;
     rows+='<tr>';
-    rows+='<td><input type="text" id="omService_'+i+'" value="'+(it.service||'')+'" list="serviceDataList" onchange="onServiceSelect('+i+')" oninput="updateOrderItem('+i+',\'service\',this.value)" style="width:120px" placeholder="选择服务"></td>';
-    rows+='<td><input type="number" value="'+it.qty+'" onchange="updateOrderItem('+i+',\'qty\',this.value)" style="width:70px" min="0"></td>';
-    rows+='<td><input type="number" value="'+it.copies+'" onchange="updateOrderItem('+i+',\'copies\',this.value)" style="width:70px" min="1"></td>';
-    rows+='<td><input type="number" value="'+it.price+'" onchange="updateOrderItem('+i+',\'price\',this.value)" style="width:90px" min="0" step="0.01"></td>';
-    rows+='<td class="money">'+formatMoney(amt)+'</td>';
-    rows+='<td><input type="text" value="'+(it.recorder||'')+'" onchange="updateOrderItem('+i+',\'recorder\',this.value)" style="width:80px"></td>';
-    rows+='<td><input type="text" value="'+(it.note||'')+'" onchange="updateOrderItem('+i+',\'note\',this.value)" style="width:100px"></td>';
     rows+='<td><button class="btn btn-danger btn-sm" onclick="removeOrderItem('+i+')">删除</button></td>';
+    rows+='<td><input type="text" id="omService_'+i+'" value="'+(it.service||'')+'" list="serviceDataList" onchange="onServiceSelect('+i+')" data-idx="'+i+'" style="width:120px" placeholder="选择服务"></td>';
+    rows+='<td><input type="number" value="'+it.qty+'" onchange="updateOrderItem('+i+',\'qty\',this.value)" style="width:65px" min="0"></td>';
+    rows+='<td><input type="number" value="'+it.copies+'" onchange="updateOrderItem('+i+',\'copies\',this.value)" style="width:65px" min="1"></td>';
+    rows+='<td><input type="number" value="'+it.price+'" onchange="updateOrderItem('+i+',\'price\',this.value)" style="width:85px" min="0" step="0.01"></td>';
+    rows+='<td class="money">'+formatMoney(amt)+'</td>';
+    rows+='<td><input type="text" value="'+(it.recorder||'')+'" onchange="updateOrderItem('+i+',\'recorder\',this.value)" style="width:70px"></td>';
+    rows+='<td><input type="text" value="'+(it.note||'')+'" onchange="updateOrderItem('+i+',\'note\',this.value)" style="width:90px"></td>';
     rows+='</tr>';
   }
-  document.getElementById('omItemsTbody').innerHTML=rows||'<tr><td colspan="8" style="text-align:center;color:#94a3b8">暂无明细</td></tr>';
+  document.getElementById('omItemsTbody').innerHTML=rows||'<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:16px">暂无明细，点击下方"添加明细"</td></tr>';
   document.getElementById('omTotal').textContent=formatMoney(total);
 }
 
@@ -829,14 +853,16 @@ function onServiceSelect(idx) {
   var input=document.getElementById('omService_'+idx);
   if (!input) return;
   var name=input.value.trim();
+  orderModalItems[idx].service=name;
   var svs=window._serviceData||[];
   for (var i=0;i<svs.length;i++) {
     if (svs[i].name===name) {
       updateOrderItem(idx, 'service', name);
       updateOrderItem(idx, 'price', svs[i].price||0);
-      break;
+      return;
     }
   }
+  updateOrderItem(idx, 'service', name);
 }
 
 function saveOrder() {
@@ -886,6 +912,7 @@ function saveOrder() {
     if (res.error) { alert('保存失败：'+res.error.message); return; }
     showToast(editingOrderId?'订单已更新':'订单已创建');
     closeOrderModal();
+    ordersSearchText='';
     loadOrders();
   });
 }
@@ -900,6 +927,57 @@ function deleteOrder(id) {
   });
 }
 
+// 订单打印
+function printOrder() {
+  var orderNo=document.getElementById('omOrderNo').value;
+  var orderDate=document.getElementById('omOrderDate').value;
+  var projectName=document.getElementById('omProject').value;
+  var req=document.getElementById('omReq').value;
+  var custSel=document.getElementById('omCustomer');
+  var customerName=custSel?custSel.options[custSel.selectedIndex].text:'';
+  var contactName=document.getElementById('omContact').value;
+
+  var itemsHtml=''; var total=0;
+  for (var i=0;i<orderModalItems.length;i++) {
+    var it=orderModalItems[i];
+    var amt=Number(it.amount)||0;
+    total+=amt;
+    itemsHtml+='<tr><td>'+(it.service||'')+'</td><td>'+(it.qty||0)+'</td><td>'+(it.copies||1)+'</td><td>'+formatMoney(it.price||0)+'</td><td>'+formatMoney(amt)+'</td><td>'+(it.recorder||'')+'</td><td>'+(it.note||'')+'</td></tr>';
+  }
+
+  var printWin=window.open('','_blank','width=800,height=700');
+  printWin.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>订单打印 - '+orderNo+'</title><style>');
+  printWin.document.write('*{margin:0;padding:0;box-sizing:border-box}');
+  printWin.document.write('body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;padding:30px;color:#1e293b}');
+  printWin.document.write('h1{text-align:center;font-size:22px;margin-bottom:4px}');
+  printWin.document.write('.subtitle{text-align:center;color:#64748b;font-size:13px;margin-bottom:20px}');
+  printWin.document.write('.info-row{display:flex;gap:30px;margin-bottom:8px;font-size:14px;flex-wrap:wrap}');
+  printWin.document.write('.info-row span{display:inline-block;min-width:160px}');
+  printWin.document.write('.info-label{color:#64748b}');
+  printWin.document.write('table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}');
+  printWin.document.write('th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}');
+  printWin.document.write('th{background:#f1f5f9;font-weight:600}');
+  printWin.document.write('.total{text-align:right;font-size:16px;font-weight:700;margin-top:8px}');
+  printWin.document.write('.req-box{margin-top:16px;border:1px solid #cbd5e1;padding:12px;font-size:13px;min-height:50px;border-radius:4px}');
+  printWin.document.write('.req-box label{font-weight:600;display:block;margin-bottom:4px}');
+  printWin.document.write('.footer{text-align:center;margin-top:40px;font-size:13px}');
+  printWin.document.write('.footer span{display:inline-block;min-width:100px;border-bottom:1px solid #1e293b;margin:0 20px}');
+  printWin.document.write('@media print{body{padding:10px}}');
+  printWin.document.write('</style></head><body>');
+  printWin.document.write('<h1>图文广告店 - 订单详情</h1>');
+  printWin.document.write('<div class="subtitle">订单编号：'+orderNo+' | 开单日期：'+orderDate+'</div>');
+  printWin.document.write('<div class="info-row"><span><span class="info-label">客户：</span>'+customerName+'</span><span><span class="info-label">联系人：</span>'+contactName+'</span></div>');
+  printWin.document.write('<div class="info-row"><span><span class="info-label">项目名称：</span>'+projectName+'</span></div>');
+  printWin.document.write('<table><thead><tr><th>服务项目</th><th>数量</th><th>份数</th><th>单价</th><th>金额</th><th>录单人</th><th>备注</th></tr></thead><tbody>'+itemsHtml+'</tbody></table>');
+  printWin.document.write('<div class="total">合计：'+formatMoney(total)+'</div>');
+  if (req) printWin.document.write('<div class="req-box"><label>制作要求：</label>'+req+'</div>');
+  printWin.document.write('<div class="footer"><span>客户签字</span><span>经手人</span></div>');
+  printWin.document.write('<p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px">打印时间：'+new Date().toLocaleString()+'</p>');
+  printWin.document.write('</body></html>');
+  printWin.document.close();
+  setTimeout(function(){ printWin.print(); }, 500);
+}
+
 // 高级搜索弹窗
 function openOrderSearch() {
   var h='<div class="modal-overlay show" id="searchModalOverlay"><div class="modal" style="max-width:600px"><div class="modal-header"><h2>🔍 高级搜索</h2><button class="modal-close" onclick="document.getElementById(\'searchModalOverlay\').remove()">×</button></div><div class="modal-body">';
@@ -909,6 +987,7 @@ function openOrderSearch() {
   h+='<div class="form-group"><label>客户</label><input type="text" id="osCustomer" placeholder="输入客户名称"></div>';
   h+='<div class="form-group"><label>联系人</label><input type="text" id="osContact" placeholder="输入联系人"></div>';
   h+='</div><div class="form-row">';
+  h+='<div class="form-group"><label>项目名称</label><input type="text" id="osProject" placeholder="输入项目名称"></div>';
   h+='<div class="form-group"><label>生产状态</label><select id="osStatus"><option value="">全部</option><option>待确认</option><option>生产中</option><option>已完工</option><option>已送货</option></select></div>';
   h+='<div class="form-group"><label>收款状态</label><select id="osPayment"><option value="">全部</option><option>未结算</option><option>已结算</option></select></div>';
   h+='</div>';
@@ -924,6 +1003,7 @@ function execOrderSearch() {
   var dTo=document.getElementById('osDateTo').value;
   var cust=document.getElementById('osCustomer').value.trim();
   var contact=document.getElementById('osContact').value.trim();
+  var project=document.getElementById('osProject').value.trim();
   var status=document.getElementById('osStatus').value;
   var payment=document.getElementById('osPayment').value;
 
@@ -932,6 +1012,7 @@ function execOrderSearch() {
   if (dTo) q=q.lte('order_date',dTo);
   if (cust) q=q.ilike('customer_name','%'+cust+'%');
   if (contact) q=q.ilike('contact_name','%'+contact+'%');
+  if (project) q=q.ilike('project_name','%'+project+'%');
   if (status) q=q.eq('status',status);
   if (payment) q=q.eq('payment_status',payment);
 
@@ -1330,8 +1411,15 @@ function loadFinance() {
 // ============================================================
 pageRenderers.employees = function() {
   if (currentRole!=='admin') { document.getElementById('pageContent').innerHTML='<div class="empty-state"><div class="empty-icon">🔒</div><p>您没有权限访问此页面</p></div>'; return; }
-  var h='<div class="page-header"><h1>👤 员工管理</h1><button class="btn btn-primary" onclick="openEmployeeModal()">+ 添加员工</button></div>';
-  h+='<div class="card"><div class="table-wrap"><table><thead><tr><th>账号</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="empTbody">加载中...</tbody></table></div></div>';
+  var h='<div class="page-header"><h1>👤 员工权限管理</h1><button class="btn btn-primary" onclick="openEmployeeModal()">+ 添加员工</button></div>';
+  h+='<div class="card"><h3>角色权限说明</h3>';
+  h+='<div class="table-wrap"><table><thead><tr><th>角色</th><th>权限范围</th></tr></thead><tbody>';
+  h+='<tr><td><strong>admin</strong> · 超级管理员</td><td>全部功能：订单/客户/服务/财务/员工管理（含添加删除员工）</td></tr>';
+  h+='<tr><td><strong>staff</strong> · 业务员</td><td>订单管理、客户管理、服务项目、工作台查看</td></tr>';
+  h+='<tr><td><strong>finance</strong> · 财务</td><td>财务结算、订单查看、工作台查看</td></tr>';
+  h+='<tr><td><strong>operator</strong> · 操作员</td><td>订单管理（仅查看）、工作台查看</td></tr>';
+  h+='</tbody></table></div></div>';
+  h+='<div class="card" style="margin-top:16px"><h3>员工列表</h3><div class="table-wrap"><table><thead><tr><th>账号</th><th>角色</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="empTbody">加载中...</tbody></table></div></div>';
   document.getElementById('pageContent').innerHTML=h;
   loadEmployees();
 };

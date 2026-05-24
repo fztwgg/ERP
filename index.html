@@ -1017,15 +1017,22 @@ function renderCustContacts() {
 function saveCustomer() {
   var name=document.getElementById('cmName').value.trim();
   if (!name) { alert('请输入客户名称'); return; }
+  console.log('[saveCustomer] currentUser:', currentUser);
+  console.log('[saveCustomer] currentUser.id:', currentUser ? currentUser.id : 'NULL');
+  console.log('[saveCustomer] editingCustId:', editingCustId);
   var data={name:name,address:document.getElementById('cmAddress').value,contacts:JSON.stringify(custContacts),user_id:currentUser.id};
+  console.log('[saveCustomer] data:', JSON.stringify(data));
   var promise=editingCustId?supabase.from('customers').update(data).eq('id',editingCustId):supabase.from('customers').insert(data);
   promise.then(function(res){
-    if (res.error) { alert('保存失败：'+res.error.message); return; }
+    console.log('[saveCustomer] result:', res);
+    if (res.error) { alert('保存失败：'+res.error.message); console.error('[saveCustomer] error:', res.error); return; }
     showToast(editingCustId?'客户已更新':'客户已添加');
     document.getElementById('custModalOverlay').remove();
     loadCustomers();
-    // 如果编辑的是订单弹窗里的客户，刷新客户下拉
     if (document.getElementById('omCustomer')) loadCustomerSelect();
+  }).catch(function(err){
+    console.error('[saveCustomer] catch:', err);
+    alert('保存异常：' + (err.message || err));
   });
 }
 
@@ -1154,13 +1161,20 @@ function openServiceModal(id) {
 function saveService() {
   var name=document.getElementById('smName').value.trim();
   if (!name) { alert('请输入服务名称'); return; }
+  console.log('[saveService] currentUser:', currentUser);
+  console.log('[saveService] editingSvcId:', editingSvcId);
   var data={name:name,category:document.getElementById('smCategory').value,spec:document.getElementById('smSpec').value,price:Number(document.getElementById('smPrice').value)||0,unit:document.getElementById('smUnit').value,note:document.getElementById('smNote').value,user_id:currentUser.id};
+  console.log('[saveService] data:', JSON.stringify(data));
   var promise=editingSvcId?supabase.from('services').update(data).eq('id',editingSvcId):supabase.from('services').insert(data);
   promise.then(function(res){
-    if (res.error) { alert('保存失败：'+res.error.message); return; }
+    console.log('[saveService] result:', res);
+    if (res.error) { alert('保存失败：'+res.error.message); console.error('[saveService] error:', res.error); return; }
     showToast(editingSvcId?'服务已更新':'服务已添加');
     document.getElementById('svcModalOverlay').remove();
     loadServices();
+  }).catch(function(err){
+    console.error('[saveService] catch:', err);
+    alert('保存异常：' + (err.message || err));
   });
 }
 

@@ -729,7 +729,7 @@ function renderOrderItems() {
     var amt=Number(it.amount)||0;
     total+=amt;
     rows+='<tr>';
-    rows+='<td><input type="text" value="'+(it.service||'')+'" onchange="updateOrderItem('+i+',\'service\',this.value)" style="width:120px"></td>';
+    rows+='<td><input type="text" id="omService_'+i+'" value="'+(it.service||'')+'" list="serviceDataList" onchange="onServiceSelect('+i+')" oninput="updateOrderItem('+i+',\'service\',this.value)" style="width:120px" placeholder="选择服务"></td>';
     rows+='<td><input type="number" value="'+it.qty+'" onchange="updateOrderItem('+i+',\'qty\',this.value)" style="width:70px" min="0"></td>';
     rows+='<td><input type="number" value="'+it.copies+'" onchange="updateOrderItem('+i+',\'copies\',this.value)" style="width:70px" min="1"></td>';
     rows+='<td><input type="number" value="'+it.price+'" onchange="updateOrderItem('+i+',\'price\',this.value)" style="width:90px" min="0" step="0.01"></td>';
@@ -808,7 +808,35 @@ function loadServiceSelectData() {
   window._serviceData=[];
   supabase.from('services').select('*').then(function(res){
     window._serviceData=res.data||[];
+    // 构建全局 datalist
+    var dl=document.getElementById('serviceDataList');
+    if (!dl) {
+      dl=document.createElement('datalist');
+      dl.id='serviceDataList';
+      document.body.appendChild(dl);
+    }
+    var opts='';
+    for (var i=0;i<window._serviceData.length;i++) {
+      var sv=window._serviceData[i];
+      opts+='<option value="'+sv.name+'" data-price="'+(sv.price||0)+'" data-unit="'+(sv.unit||'件')+'" data-spec="'+(sv.spec||'')+'">'+sv.name+' - ¥'+(sv.price||0)+'/'+(sv.unit||'件')+'</option>';
+    }
+    dl.innerHTML=opts;
   });
+}
+
+// 当订单明细选择服务项目时，自动填充单价
+function onServiceSelect(idx) {
+  var input=document.getElementById('omService_'+idx);
+  if (!input) return;
+  var name=input.value.trim();
+  var svs=window._serviceData||[];
+  for (var i=0;i<svs.length;i++) {
+    if (svs[i].name===name) {
+      updateOrderItem(idx, 'service', name);
+      updateOrderItem(idx, 'price', svs[i].price||0);
+      break;
+    }
+  }
 }
 
 function saveOrder() {

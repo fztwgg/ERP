@@ -311,16 +311,19 @@ function loadUserAndShowApp(user) {
   document.getElementById('loginPage').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sidebarUser').textContent=user.email.split('@')[0];
-  // 读取角色
-  supabase.from('profiles').select('role').eq('id',user.id).single().then(function(res){
-    if (res.data) { currentRole=res.data.role; }
-    // 管理员可见员工管理
+  // 读取角色：优先 profiles 表，失败则用 auth metadata
+  function applyRoleAndNav(){
     var adminItems = document.querySelectorAll('.admin-only');
     for (var i=0;i<adminItems.length;i++) { adminItems[i].style.display=currentRole==='admin'?'':'none'; }
-    // 默认显示订单管理
     navigateTo('orders');
+  }
+  supabase.from('profiles').select('role').eq('id',user.id).single().then(function(res){
+    if (res.data && res.data.role) { currentRole=res.data.role; }
+    applyRoleAndNav();
   }).catch(function(){
-    navigateTo('orders');
+    // profiles 表查询失败，降级使用 auth metadata
+    if (user.user_metadata && user.user_metadata.role) { currentRole=user.user_metadata.role; }
+    applyRoleAndNav();
   });
 }
 

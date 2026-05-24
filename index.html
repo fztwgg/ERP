@@ -201,26 +201,21 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--pr
 // ============================================================
 var SUPABASE_URL = 'https://jceneloygpumoczthbvq.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjZW5lbG95Z3B1bW9jenRoYnZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NzMxNzYsImV4cCI6MjA5NTE0OTE3Nn0.puz8Z3behlGAx2tFQ3Yfw-rnRhe2jI42T1pvZsibOgc';
-var supabase = null;
+// 不要 var supabase = null，那会覆盖 supabase.js 加载的库！
 var currentUser = null;
 var currentRole = 'staff';
 
 // 立即初始化 Supabase（supabase.js 已在上方加载）
+var supabase;
 (function() {
   if (typeof window.supabase !== 'undefined') {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('Supabase 初始化成功');
   } else {
-    console.error('Supabase 库未加载！window.supabase = ' + typeof window.supabase);
-    setTimeout(function() {
-      if (typeof window.supabase !== 'undefined' && !supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('Supabase 延迟初始化成功');
-      }
-    }, 2000);
+    supabase = null;
+    console.error('Supabase 库未加载');
   }
 })();
-
 
 // ============================================================
 //  登录/注册

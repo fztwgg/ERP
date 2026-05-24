@@ -191,9 +191,9 @@ input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--pr
   </main>
 </div>
 
-<!-- Supabase JS + Chart.js -->
-<script src="https://unpkg.com/@supabase/supabase-js@2.106.1/dist/umd/supabase.js"></script>
-<script src="https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js"></script>
+<!-- Supabase JS + Chart.js（使用 jsDelivr CDN，国内可访问） -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.106.1/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
 <script>
 // ============================================================
@@ -263,6 +263,7 @@ function doRegister() {
   var errEl = document.getElementById('regErr');
   var btn = document.getElementById('regBtn');
   if (!account||!pass) { errEl.textContent='请输入账号名和密码'; errEl.style.display='block'; return; }
+  if (!supabase) { errEl.textContent='系统错误：Supabase 未初始化，请刷新页面'; errEl.style.display='block'; return; }
   if (pass!==pass2) { errEl.textContent='两次输入的密码不一致'; errEl.style.display='block'; return; }
   if (pass.length<6) { errEl.textContent='密码长度至少6位'; errEl.style.display='block'; return; }
   btn.disabled=true; btn.textContent='注册中...'; errEl.style.display='none';

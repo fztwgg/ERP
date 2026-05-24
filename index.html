@@ -311,19 +311,17 @@ function loadUserAndShowApp(user) {
   document.getElementById('loginPage').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('sidebarUser').textContent=user.email.split('@')[0];
-  // 读取角色：优先 profiles 表，失败则用 auth metadata
-  function applyRoleAndNav(){
+  // 读取角色
+  // 优先从 auth metadata 读取（注册时写入的 role）
+  if (user.user_metadata && user.user_metadata.role) { currentRole=user.user_metadata.role; }
+  // 同时也尝试从 profiles 表覆盖（后者优先）
+  supabase.from('profiles').select('role').eq('id',user.id).single().then(function(res){
+    if (res.data && res.data.role) { currentRole=res.data.role; }
+  }).catch(function(){}).finally(function(){
+    // 无论成功失败，都应用角色并导航
     var adminItems = document.querySelectorAll('.admin-only');
     for (var i=0;i<adminItems.length;i++) { adminItems[i].style.display=currentRole==='admin'?'':'none'; }
     navigateTo('orders');
-  }
-  supabase.from('profiles').select('role').eq('id',user.id).single().then(function(res){
-    if (res.data && res.data.role) { currentRole=res.data.role; }
-    applyRoleAndNav();
-  }).catch(function(){
-    // profiles 表查询失败，降级使用 auth metadata
-    if (user.user_metadata && user.user_metadata.role) { currentRole=user.user_metadata.role; }
-    applyRoleAndNav();
   });
 }
 

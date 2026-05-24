@@ -225,13 +225,32 @@ function doLogin() {
   var errEl = document.getElementById('loginErr');
   var btn = document.getElementById('loginBtn');
   if (!account || !pass) { errEl.textContent='请输入账号名和密码'; errEl.style.display='block'; return; }
+  if (!supabase) { errEl.textContent='系统错误：Supabase 未初始化，请刷新页面'; errEl.style.display='block'; return; }
   btn.disabled=true; btn.textContent='登录中...'; errEl.style.display='none';
   var email = account + '@erp.local';
-  supabase.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+  // 设置 15 秒超时，防止卡住
+  var timedOut = false;
+  var timer = setTimeout(function(){
+    timedOut = true;
     btn.disabled=false; btn.textContent='登 录';
-    if (res.error) { errEl.textContent='账号或密码错误，请重试'; errEl.style.display='block'; return; }
+    errEl.textContent='连接超时！请检查网络，或确认 Supabase 项目是否已激活'; errEl.style.display='block';
+  }, 15000);
+  supabase.auth.signInWithPassword({email:email,password:pass}).then(function(res){
+    if (timedOut) return;
+    clearTimeout(timer);
+    btn.disabled=false; btn.textContent='登 录';
+    if (res.error) {
+      if (res.error.message && res.error.message.indexOf('Email not confirmed')>=0) {
+        errEl.textContent='账号未验证！请在 Supabase 控制台关闭邮箱验证（Authentication → Settings → 关闭 Confirm email）';
+      } else {
+        errEl.textContent='账号或密码错误，请重试';
+      }
+      errEl.style.display='block'; return;
+    }
     loadUserAndShowApp(res.data.user);
   }).catch(function(err){
+    if (timedOut) return;
+    clearTimeout(timer);
     btn.disabled=false; btn.textContent='登 录';
     errEl.textContent='登录失败：'+(err.message||err); errEl.style.display='block';
   });

@@ -1133,7 +1133,7 @@ function drawCustomerChart(orders) {
   var colors=['#4f46e5','#16a34a','#f59e0b','#dc2626','#06b6d4','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1'];
   var bgColors=data.map(function(_,i){ return colors[i%colors.length]; });
   if (customerChartInstance) { customerChartInstance.destroy(); customerChartInstance=null; }
-  customerChartInstance = new Chart(ctx,{type:'bar',data:{labels:labels,datasets:[{label:'订单金额',data:data,backgroundColor:bgColors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:function(v){return '¥'+v;}}}}});
+  customerChartInstance = new Chart(ctx,{type:'bar',data:{labels:labels,datasets:[{label:'订单金额',data:data,backgroundColor:bgColors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:function(v){return '¥'+v;}}}}}});
 }
 
 // ========== 财务结算 ==========

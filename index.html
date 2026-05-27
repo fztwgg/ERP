@@ -475,6 +475,10 @@ function doLogin() {
     if (res.error) { document.getElementById('loginErr').textContent = res.error.message; document.getElementById('loginErr').style.display='block'; }
     else onLogin(res.data.user);
     btn.disabled=false; btn.textContent='登 录';
+  }).catch(function(err) {
+    document.getElementById('loginErr').textContent = '网络错误，请重试：' + (err.message||err);
+    document.getElementById('loginErr').style.display='block';
+    btn.disabled=false; btn.textContent='登 录';
   });
 }
 
@@ -497,6 +501,10 @@ function doReg() {
         alert('注册成功！请登录。'); showLogin();
       }).catch(function() { alert('注册成功！请登录。'); showLogin(); });
     }
+    btn.disabled=false; btn.textContent='注 册';
+  }).catch(function(err) {
+    document.getElementById('regErr').textContent = '网络错误，请重试：' + (err.message||err);
+    document.getElementById('regErr').style.display='block';
     btn.disabled=false; btn.textContent='注 册';
   });
 }

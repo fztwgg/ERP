@@ -909,7 +909,8 @@ function saveOrder() {
     items: JSON.stringify(items),
     total_amount: total,
     recorder: userName(),
-    store_id: 'default'
+    store_id: 'default',
+    user_id: currentUser ? currentUser.id : null
   };
   supabase.from('orders').insert([order]).then(function(res) {
     if (res.error) { alert('保存失败：'+res.error.message); return; }
@@ -1105,7 +1106,8 @@ function confirmSettle() {
       payment_method: method,
       note: note,
       recorder: userName(),
-      store_id: 'default'
+      store_id: 'default',
+      user_id: currentUser ? currentUser.id : null
     }]).then(function() {
       closeModal('settleModal'); showToast('结算成功'); loadOrders();
     });
@@ -1229,7 +1231,7 @@ function saveCustomer() {
     var ctTitle = (inputs[2]||{}).value||'';
     if (ctName || ctPhone) contacts.push({ name: ctName, phone: ctPhone, title: ctTitle });
   });
-  var data = { name: name, phone: phone, address: address, note: note, contacts: JSON.stringify(contacts), store_id: 'default' };
+  var data = { name: name, phone: phone, address: address, note: note, contacts: JSON.stringify(contacts), store_id: 'default', user_id: currentUser ? currentUser.id : null };
   var btn = document.getElementById('btnSaveCustomer');
   btn.disabled = true; btn.textContent = '保存中...';
   var req = id ? supabase.from('customers').update(data).eq('id',id) : supabase.from('customers').insert([data]);
@@ -1279,7 +1281,8 @@ function importCustomersCSV(input) {
         address: addrIdx>=0?r[addrIdx]:'',
         note: noteIdx>=0?r[noteIdx]:'',
         contacts: JSON.stringify(contacts),
-        store_id: 'default'
+        store_id: 'default',
+        user_id: currentUser ? currentUser.id : null
       });
     }
     if (!toInsert.length) { alert('无有效数据'); return; }
@@ -1613,7 +1616,7 @@ function saveService() {
   var price = Number(document.getElementById('svcPrice').value) || 0;
   var unit = document.getElementById('svcUnit').value.trim() || '项';
   if (!name) { alert('请输入服务名称'); return; }
-  var data = { name: name, category: category, price: price, unit: unit, store_id: 'default' };
+  var data = { name: name, category: category, price: price, unit: unit, store_id: 'default', user_id: currentUser ? currentUser.id : null };
   var btn = document.getElementById('btnSaveService');
   btn.disabled = true; btn.textContent = '保存中...';
   var req = id ? supabase.from('services').update(data).eq('id',id) : supabase.from('services').insert([data]);
@@ -1713,7 +1716,8 @@ function importServicesCSV(input) {
         category: catIdx>=0 ? r[catIdx] : '',
         price: priceIdx>=0 ? (Number(r[priceIdx])||0) : 0,
         unit: unitIdx>=0 ? r[unitIdx] : '项',
-        store_id: 'default'
+        store_id: 'default',
+        user_id: currentUser ? currentUser.id : null
       });
     }
     if (!toInsert.length) { alert('无有效数据'); return; }
@@ -1757,7 +1761,7 @@ function addCategory() {
   var name = document.getElementById('newCategoryName').value.trim();
   if (!name) { alert('请输入分类名称'); return; }
   // 分类不需要单独的表，插入一个占位服务来"注册"分类，然后立即软删除
-  supabase.from('services').insert([{ name: '_分类占位_'+name, category: name, price: 0, unit: '项', deleted: true, store_id: 'default' }]).then(function(res) {
+  supabase.from('services').insert([{ name: '_分类占位_'+name, category: name, price: 0, unit: '项', deleted: true, store_id: 'default', user_id: currentUser ? currentUser.id : null }]).then(function(res) {
     if (res.error) { alert('添加失败：'+res.error.message); return; }
     showToast('分类已添加');
     toggleCategoryManager(); // 刷新列表

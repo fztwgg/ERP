@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>图文广告店 ERP 管理系统 v3.4</title>
+<title>图文广告店 ERP 管理系统 v3.6</title>
 <link rel="stylesheet" href="style.css">
 <script src="supabase.js"></script>
 <script src="chart.min.js"></script>
@@ -14,7 +14,7 @@
 <div id="loginPage">
   <div class="login-card">
     <h2>🖨️ 图文广告店 ERP</h2>
-    <p class="sub">v3.4 — 多用户共享版</p>
+    <p class="sub">v3.6 — 多用户共享版</p>
     <div id="loginForm">
       <div class="form-group">
         <label>账号</label>
@@ -40,10 +40,9 @@
       <div class="form-group">
         <label>角色</label>
         <select id="regRole">
-          <option value="admin">超级管理员</option>
-          <option value="manager">店长</option>
           <option value="staff" selected>员工</option>
         </select>
+        <small style="color:#94a3b8;font-size:12px">管理员账号需由超级管理员在员工管理中创建</small>
       </div>
       <div id="regErr" class="err-msg"></div>
       <button class="btn btn-primary" id="btnReg" onclick="doReg()">注 册</button>
@@ -392,6 +391,92 @@
   </div>
 </div>
 
+<!-- 客户弹窗 -->
+<div class="modal-overlay" id="customerModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="customerModalTitle">新建客户</h2>
+      <button class="modal-close" onclick="closeModal('customerModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="custEditId">
+      <div class="form-row">
+        <div class="form-group"><label>客户名称 <span style="color:#dc2626">*</span></label><input id="custName" placeholder="请输入客户名称"></div>
+        <div class="form-group"><label>电话</label><input id="custPhone" placeholder="主要电话"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>地址</label><input id="custAddress" placeholder="地址"></div>
+        <div class="form-group"><label>备注</label><input id="custNote" placeholder="备注"></div>
+      </div>
+      <h3 style="font-size:14px;margin:12px 0 8px">联系人</h3>
+      <div class="table-wrap"><table><thead><tr><th>姓名</th><th>电话</th><th>职务</th><th>操作</th></tr></thead><tbody id="custContactsBody"></tbody></table></div>
+      <button class="btn btn-outline btn-sm" onclick="addCustContact()" style="margin-top:8px">＋ 添加联系人</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('customerModal')">取消</button>
+      <button class="btn btn-primary" id="btnSaveCustomer" onclick="saveCustomer()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 服务弹窗 -->
+<div class="modal-overlay" id="serviceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="serviceModalTitle">新建服务项目</h2>
+      <button class="modal-close" onclick="closeModal('serviceModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="svcEditId">
+      <div class="form-row">
+        <div class="form-group"><label>服务名称 <span style="color:#dc2626">*</span></label><input id="svcName" placeholder="请输入服务名称"></div>
+        <div class="form-group"><label>分类</label><input list="svcCatList" id="svcCategory" placeholder="选择或输入" autocomplete="off"><datalist id="svcCatList"></datalist></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>默认单价（元）</label><input type="number" id="svcPrice" step="0.01" value="0" placeholder="0.00"></div>
+        <div class="form-group"><label>单位</label><input id="svcUnit" placeholder="项" value="项"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('serviceModal')">取消</button>
+      <button class="btn btn-primary" id="btnSaveService" onclick="saveService()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 员工弹窗 -->
+<div class="modal-overlay" id="employeeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="employeeModalTitle">添加员工</h2>
+      <button class="modal-close" onclick="closeModal('employeeModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="empEditId">
+      <div class="form-row">
+        <div class="form-group"><label>账号 <span style="color:#dc2626">*</span></label><input id="empAccount" placeholder="登录账号，唯一"></div>
+        <div class="form-group"><label>密码 <span style="color:#dc2626" id="empPwdLabel">*</span></label><input type="password" id="empPassword" placeholder="请输入密码"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>姓名</label><input id="empName" placeholder="员工姓名"></div>
+        <div class="form-group"><label>电话</label><input id="empPhone" placeholder="联系电话"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>身份证号</label><input id="empIdCard" placeholder="身份证号码"></div>
+        <div class="form-group"><label>入职时间</label><input type="date" id="empJoinDate"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>角色</label><select id="empRole"><option value="staff">员工</option><option value="manager">店长</option><option value="admin">超级管理员</option></select></div>
+        <div class="form-group"><label>家庭住址</label><input id="empAddress" placeholder="家庭住址"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('employeeModal')">取消</button>
+      <button class="btn btn-primary" id="btnSaveEmployee" onclick="saveEmployee()">保存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ========== 全局变量 ==========
 var SUPABASE_URL = 'https://jceneloygpumoczthbvq.supabase.co';
@@ -453,7 +538,7 @@ function onLogin(user) {
     for (var j = 0; j < financeItems.length; j++) { financeItems[j].style.display = currentRole === 'manager' ? 'none' : ''; }
     var staffHide = document.querySelectorAll('.staff-hide');
     for (var k = 0; k < staffHide.length; k++) { staffHide[k].style.display = currentRole === 'staff' ? 'none' : ''; }
-    document.getElementById('sideUserName').textContent = (user.user_metadata && user.user_metadata.name) || user.email || '-';
+    document.getElementById('sideUserName').textContent = (user.user_metadata && user.user_metadata.name) || (user.email ? user.email.replace('@erp.local','') : '-');
     var roleMap = { admin: '超级管理员', manager: '店长', staff: '员工' };
     document.getElementById('sideUserRole').textContent = roleMap[currentRole] || currentRole;
     document.getElementById('loginPage').style.display = 'none';
@@ -518,12 +603,21 @@ function navigateTo(page) {
   for (var i=0;i<pages.length;i++) document.getElementById('page-'+pages[i]).style.display='none';
   document.getElementById('page-'+page).style.display='block';
   var navs = document.querySelectorAll('#sidebar .nav-item');
-  for (var j=0;j<navs.length;j++) navs[j].classList.remove('active');
-  event.currentTarget && event.currentTarget.classList.add('active');
+  for (var j=0;j<navs.length;j++) {
+    navs[j].classList.remove('active');
+    // 根据 onclick 属性匹配高亮
+    if (navs[j].getAttribute('onclick') && navs[j].getAttribute('onclick').indexOf("'"+page+"'") !== -1) {
+      navs[j].classList.add('active');
+    }
+  }
   var fns = { orders:loadOrders, customers:loadCustomers, services:loadServices, finance:loadFinance, employees:loadEmployees, dashboard:loadDashboard };
   fns[page] && fns[page]();
 }
 
+function userName() {
+  if (!currentUser) return '';
+  return (currentUser.user_metadata && currentUser.user_metadata.name) || (currentUser.email ? currentUser.email.replace('@erp.local','') : '');
+}
 // ========== 工具函数 ==========
 function formatDate(dt) {
   if (!dt) return '';
@@ -533,6 +627,10 @@ function formatDate(dt) {
 }
 function todayStr() { var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function daysAgo(n) { var d=new Date(); d.setDate(d.getDate()-n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function esc(str) {
+  if (!str && str !== 0) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 function showToast(msg) {
   var t=document.createElement('div'); t.className='toast'; t.textContent=msg;
   document.body.appendChild(t); setTimeout(function(){ t.remove(); },2500);
@@ -545,9 +643,9 @@ function loadOrders() {
   var tab = document.getElementById('orderTab').value;
   var q = supabase.from('orders').select('*, customers(name)',{count:'exact'}).eq('deleted',false).order('created_at',{ascending:false});
   var today = todayStr();
-  if (tab==='today') q = q.eq('created_at',today);
-  else if (tab==='yesterday') { var y=new Date(); y.setDate(y.getDate()-1); var ys=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0'); q=q.eq('created_at',ys); }
-  else if (tab==='week') { var ws=new Date(); ws.setDate(ws.getDate()-6); q=q.gte('created_at',formatDate(ws)); }
+  if (tab==='today') q = q.eq('order_date',today);
+  else if (tab==='yesterday') { var y=new Date(); y.setDate(y.getDate()-1); var ys=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0'); q=q.eq('order_date',ys); }
+  else if (tab==='week') { var ws=new Date(); ws.setDate(ws.getDate()-6); q=q.gte('order_date',formatDate(ws)); }
   else if (tab==='pending') q=q.eq('production_status','pending');
   else if (tab==='production') q=q.eq('production_status','production');
   else if (tab==='done') q=q.eq('production_status','done');
@@ -621,7 +719,9 @@ function toggleOrderSelectAll() {
 function execOrderSearch() {
   var kw = document.getElementById('orderSearchInput').value.trim();
   if (!kw) { loadOrders(); return; }
-  supabase.from('orders').select('*, customers(name)',{count:'exact'}).eq('deleted',false).or('order_no.ilike.%'+kw+'%,customer_name.ilike.%'+kw+'%').order('created_at',{ascending:false}).then(function(res){
+  supabase.from('orders').select('*, customers(name)',{count:'exact'}).eq('deleted',false)
+    .or('order_no.ilike.%'+kw+'%,customer_name.ilike.%'+kw+'%,project_name.ilike.%'+kw+'%,contact.ilike.%'+kw+'%')
+    .order('created_at',{ascending:false}).then(function(res){
     ordersData=res.data||[]; ordersTotalCount=res.count||0; ordersSelected={}; ordersCurrentPage=1;
     renderOrdersTable(); renderOrdersPagination();
   });
@@ -632,6 +732,15 @@ function switchOrderTab() { ordersCurrentPage=1; ordersSelected={}; loadOrders()
 // ========== 新建/编辑订单 ==========
 function openOrderModal(id) {
   document.getElementById('orderModalTitle').textContent = id ? '编辑订单' : '新建订单';
+  // 重置只读状态
+  document.getElementById('btnSaveOrder').style.display = '';
+  document.getElementById('btnSaveOrder').onclick = function(){ saveOrder(); };
+  var allInputs = document.querySelectorAll('#orderModalBody input:not([type=hidden]), #orderModalBody textarea');
+  for (var i = 0; i < allInputs.length; i++) { allInputs[i].disabled = false; }
+  var allBtns = document.querySelectorAll('#orderModalBody button');
+  for (var j = 0; j < allBtns.length; j++) { allBtns[j].style.display = ''; }
+  var steps = document.querySelectorAll('#progressSteps .progress-step');
+  for (var k = 0; k < steps.length; k++) { steps[k].style.pointerEvents = ''; }
   document.getElementById('omCustomerInput').value = '';
   document.getElementById('omCustomerId').value = '';
   document.getElementById('omCustomerName').value = '';
@@ -663,7 +772,7 @@ function addOrderItem() {
     '<td><input type="number" value="1" min="1" step="1" style="width:60px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px" oninput="calcTotal()"></td>'+
     '<td><input type="number" value="0" step="0.01" style="width:80px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px" oninput="calcTotal()"></td>'+
     '<td class="money" style="font-weight:600">¥0.00</td>'+
-    '<td><input value="'+esc(currentUser?((currentUser.user_metadata&&currentUser.user_metadata.name)||currentUser.email||''):'')+'" style="width:80px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px"></td>'+
+    '<td><input value="'+esc(userName())+'" style="width:80px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px"></td>'+
     '<td><input placeholder="备注" style="width:100px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px"></td>';
   tbody.appendChild(tr);
   // 更新 datalist
@@ -685,9 +794,6 @@ function onServiceSelect(input) {
   var name = input.value;
   supabase.from('services').select('*').eq('name',name).eq('deleted',false).single().then(function(res) {
     if (res.data && res.data.price) {
-      var td = input.closest('tr').children[6]; // 单价列
-      var inp = td.previousElementSibling ? td.previousElementSibling.querySelector('input') || td.previousElementSibling : null;
-      // 找到单价 input
       var row = input.closest('tr');
       var priceInput = row.children[5] ? row.children[5].querySelector('input') : null;
       if (priceInput) priceInput.value = res.data.price;
@@ -712,14 +818,18 @@ function calcTotal() {
 }
 
 function setProgress(step) {
+  var order = ['pending','production','done','delivered','invoiced'];
+  var stepIdx = order.indexOf(step);
   var steps = document.querySelectorAll('#progressSteps .progress-step');
   for (var i=0;i<steps.length;i++) {
     var s = steps[i];
+    var sStep = s.getAttribute('data-step');
     s.classList.remove('active','done');
-    if (s.getAttribute('data-step')===step) s.classList.add('active');
-    else if (['pending','production','done','delivered','invoiced'].indexOf(s.getAttribute('data-step')) < ['pending','production','done','delivered','invoiced'].indexOf(step)) s.classList.add('done');
+    if (sStep === step) s.classList.add('active');
+    else if (order.indexOf(sStep) < stepIdx) s.classList.add('done');
   }
-  document.getElementById('omProgress').value = step;
+  // 存储当前进度状态
+  document.getElementById('progressSteps').setAttribute('data-current', step);
 }
 
 // 客户搜索
@@ -788,6 +898,7 @@ function saveOrder() {
   }
   var total = items.reduce(function(s,item){ return s+item.amount; },0);
   var order = {
+    order_no: document.getElementById('omOrderNo').value,
     customer_id: customerId,
     customer_name: customerName,
     contact: document.getElementById('omContactInput').value.trim(),
@@ -797,7 +908,7 @@ function saveOrder() {
     order_date: document.getElementById('omOrderDate').value,
     items: JSON.stringify(items),
     total_amount: total,
-    recorder: (currentUser&&currentUser.user_metadata&&currentUser.user_metadata.name)||(currentUser&&currentUser.email)||'',
+    recorder: userName(),
     store_id: 'default'
   };
   supabase.from('orders').insert([order]).then(function(res) {
@@ -814,6 +925,7 @@ function editOrder(id, readonly) {
     var o = res.data;
     document.getElementById('orderModalTitle').textContent = readonly?'查看订单':'编辑订单';
     document.getElementById('omCustomerInput').value = o.customer_name||'';
+    document.getElementById('omCustomerId').value = o.customer_id||'';
     document.getElementById('omCustomerName').value = o.customer_name||'';
     document.getElementById('omContactInput').value = o.contact||'';
     document.getElementById('omOrderNo').value = o.order_no||'';
@@ -841,7 +953,25 @@ function editOrder(id, readonly) {
       calcTotal();
     } catch(e){}
     if (!readonly) {
+      document.getElementById('btnSaveOrder').style.display = '';
       document.getElementById('btnSaveOrder').onclick = function(){ updateOrder(id); };
+      // 重置只读状态
+      var allInputs = document.querySelectorAll('#orderModalBody input:not([type=hidden]), #orderModalBody textarea');
+      for (var k2 = 0; k2 < allInputs.length; k2++) { allInputs[k2].disabled = false; }
+      var allBtns = document.querySelectorAll('#orderModalBody button');
+      for (var m2 = 0; m2 < allBtns.length; m2++) { allBtns[m2].style.display = ''; }
+      var steps2 = document.querySelectorAll('#progressSteps .progress-step');
+      for (var n2 = 0; n2 < steps2.length; n2++) { steps2[n2].style.pointerEvents = ''; }
+    } else {
+      // 只读模式：禁用所有输入
+      document.getElementById('btnSaveOrder').style.display = 'none';
+      var allInputs = document.querySelectorAll('#orderModalBody input:not([type=hidden]), #orderModalBody textarea');
+      for (var k = 0; k < allInputs.length; k++) { allInputs[k].disabled = true; }
+      var allBtns = document.querySelectorAll('#orderModalBody button');
+      for (var m = 0; m < allBtns.length; m++) { allBtns[m].style.display = 'none'; }
+      // 隐藏进度条点击
+      var steps = document.querySelectorAll('#progressSteps .progress-step');
+      for (var n = 0; n < steps.length; n++) { steps[n].style.pointerEvents = 'none'; }
     }
     openModal('orderModal');
   });
@@ -866,6 +996,7 @@ function updateOrder(id) {
   }
   var total = items.reduce(function(s,item){ return s+item.amount; },0);
   var order = {
+    customer_id: document.getElementById('omCustomerId').value || null,
     customer_name: customerName,
     contact: document.getElementById('omContactInput').value.trim(),
     project_name: projectName,
@@ -874,7 +1005,7 @@ function updateOrder(id) {
     order_date: document.getElementById('omOrderDate').value,
     items: JSON.stringify(items),
     total_amount: total,
-    recorder: (currentUser&&currentUser.user_metadata&&currentUser.user_metadata.name)||(currentUser&&currentUser.email)||''
+    recorder: userName()
   };
   supabase.from('orders').update(order).eq('id',id).then(function(res) {
     if (res.error) { alert('更新失败：'+res.error.message); return; }
@@ -973,7 +1104,7 @@ function confirmSettle() {
       amount: amount,
       payment_method: method,
       note: note,
-      recorder: (currentUser&&currentUser.user_metadata&&currentUser.user_metadata.name)||(currentUser&&currentUser.email)||'',
+      recorder: userName(),
       store_id: 'default'
     }]).then(function() {
       closeModal('settleModal'); showToast('结算成功'); loadOrders();
@@ -1044,6 +1175,78 @@ function deleteCustomer(id) {
   supabase.from('customers').update({ deleted: true }).eq('id',id).then(function(){ showToast('客户已删除'); loadCustomers(); });
 }
 
+// 客户弹窗
+function openCustomerModal(id) {
+  document.getElementById('custEditId').value = id || '';
+  document.getElementById('customerModalTitle').textContent = id ? '编辑客户' : '新建客户';
+  document.getElementById('custName').value = '';
+  document.getElementById('custPhone').value = '';
+  document.getElementById('custAddress').value = '';
+  document.getElementById('custNote').value = '';
+  document.getElementById('custContactsBody').innerHTML = '';
+  if (id) {
+    supabase.from('customers').select('*').eq('id',id).single().then(function(res) {
+      if (!res.data) return;
+      var c = res.data;
+      document.getElementById('custName').value = c.name || '';
+      document.getElementById('custPhone').value = c.phone || '';
+      document.getElementById('custAddress').value = c.address || '';
+      document.getElementById('custNote').value = c.note || '';
+      try {
+        var contacts = JSON.parse(c.contacts || '[]');
+        contacts.forEach(function(ct) { addCustContact(ct.name, ct.phone, ct.title); });
+      } catch(e) {}
+    });
+  } else { addCustContact(); }
+  openModal('customerModal');
+}
+
+function addCustContact(name, phone, title) {
+  var tbody = document.getElementById('custContactsBody');
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td><input value="' + esc(name||'') + '" placeholder="姓名" style="width:100%;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px"></td>' +
+    '<td><input value="' + esc(phone||'') + '" placeholder="电话" style="width:100%;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px"></td>' +
+    '<td><input value="' + esc(title||'') + '" placeholder="职务" style="width:100%;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px"></td>' +
+    '<td><button class="btn btn-sm btn-danger" onclick="this.closest(\'tr\').remove()">🗑</button></td>';
+  tbody.appendChild(tr);
+}
+
+function saveCustomer() {
+  var id = document.getElementById('custEditId').value;
+  var name = document.getElementById('custName').value.trim();
+  var phone = document.getElementById('custPhone').value.trim();
+  var address = document.getElementById('custAddress').value.trim();
+  var note = document.getElementById('custNote').value.trim();
+  if (!name) { alert('请输入客户名称'); return; }
+  // 收集联系人
+  var contacts = [];
+  var rows = document.getElementById('custContactsBody').querySelectorAll('tr');
+  rows.forEach(function(tr) {
+    var inputs = tr.querySelectorAll('input');
+    var ctName = (inputs[0]||{}).value||'';
+    var ctPhone = (inputs[1]||{}).value||'';
+    var ctTitle = (inputs[2]||{}).value||'';
+    if (ctName || ctPhone) contacts.push({ name: ctName, phone: ctPhone, title: ctTitle });
+  });
+  var data = { name: name, phone: phone, address: address, note: note, contacts: JSON.stringify(contacts), store_id: 'default' };
+  var btn = document.getElementById('btnSaveCustomer');
+  btn.disabled = true; btn.textContent = '保存中...';
+  var req = id ? supabase.from('customers').update(data).eq('id',id) : supabase.from('customers').insert([data]);
+  req.then(function(res) {
+    btn.disabled = false; btn.textContent = '保存';
+    if (res.error) { alert('保存失败：'+res.error.message); return; }
+    closeModal('customerModal');
+    showToast(id?'客户已更新':'客户已创建');
+    loadCustomers();
+  }).catch(function(err) {
+    btn.disabled = false; btn.textContent = '保存';
+    alert('网络错误：'+(err.message||err));
+  });
+}
+
+function editCustomer(id) { openCustomerModal(id); }
+
 // CSV 导入（修复联系人映射错误）
 function importCustomersCSV(input) {
   if (!input.files || !input.files[0]) return;
@@ -1091,7 +1294,7 @@ function importCustomersCSV(input) {
 
 // ========== 工作台 ==========
 function loadDashboard() {
-  supabase.from('orders').select('*').eq('deleted',false).gte('created_at',daysAgo(6)).then(function(res) {
+  supabase.from('orders').select('*').eq('deleted',false).gte('order_date',daysAgo(6)).then(function(res) {
     var orders = res.data||[];
     // 统计卡片
     var totalRev = 0, settledCount = 0, unsettledCount = 0, orderCount = orders.length;
@@ -1113,8 +1316,8 @@ function drawChart(orders) {
   var days = []; var values = [];
   for (var i=6;i>=0;i--) { days.push(daysAgo(i)); values.push(0); }
   for (var j=0;j<orders.length;j++) {
-    var o=orders[j]; if(!o.created_at) continue;
-    var d=formatDate(o.created_at);
+    var o=orders[j]; if(!o.order_date) continue;
+    var d=formatDate(o.order_date);
     var idx=days.indexOf(d);
     if(idx>=0) values[idx]+=Number(o.total_amount||0);
   }
@@ -1198,12 +1401,19 @@ function renderFinPagination() {
   document.getElementById('finPagination').innerHTML = html;
 }
 
+function csvCell(val) {
+  var s = String(val === null || val === undefined ? '' : val);
+  if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
 function exportFinance() {
   supabase.from('payments').select('*, orders(order_no, customer_name)').order('created_at',{ascending:false}).then(function(res) {
     var list = res.data||[];
     var csv = '\uFEFF日期,订单号,客户,金额,付款方式,备注\n';
     list.forEach(function(p) {
-      csv += (p.created_at||'')+','+(p.orders&&p.orders.order_no||'')+','+(p.orders&&p.orders.customer_name||'')+','+(Number(p.amount)||0)+','+(p.payment_method||'')+','+(p.note||'')+'\n';
+      csv += csvCell(p.created_at||'')+','+csvCell(p.orders&&p.orders.order_no||'')+','+csvCell(p.orders&&p.orders.customer_name||'')+','+(Number(p.amount)||0)+','+csvCell(p.payment_method||'')+','+csvCell(p.note||'')+'\n';
     });
     var blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
     var a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='财务收款_'+todayStr()+'.csv'; a.click();
@@ -1240,23 +1450,75 @@ function renderEmpTable(list) {
 }
 
 function openEmployeeModal() {
-  // 简单实现：用 prompt 收集信息（实际可改为弹窗表单）
-  var account = prompt('账号（唯一）：'); if(!account) return;
-  var password = prompt('密码：'); if(!password) return;
-  var name = prompt('姓名：')||'';
-  var phone = prompt('电话：')||'';
-  var idCard = prompt('身份证号：')||'';
-  var joinDate = prompt('入职时间（YYYY-MM-DD）：')||todayStr();
-  var address = prompt('家庭住址：')||'';
-  var role = prompt('角色（admin/manager/staff）：')||'staff';
-  supabase.auth.signUp({ email:account+'@erp.local', password:password, options:{ data:{ role:role, name:name } } }).then(function(res) {
-    if (res.error) { alert('创建失败：'+res.error.message); return; }
-    // 写入 profiles
-    supabase.from('profiles').insert({
-      id: res.data.user.id, account:account, role:role, name:name, phone:phone,
-      id_card:idCard, join_date:joinDate, address:address, locked:false, store_id:'default'
-    }).then(function(){ showToast('员工已添加'); loadEmployees(); });
-  });
+  document.getElementById('empEditId').value = '';
+  document.getElementById('employeeModalTitle').textContent = '添加员工';
+  document.getElementById('empAccount').value = '';
+  document.getElementById('empAccount').disabled = false;
+  document.getElementById('empPassword').value = '';
+  document.getElementById('empPassword').style.display = '';
+  document.getElementById('empPwdLabel').textContent = '*';
+  document.getElementById('empPwdLabel').style.color = '#dc2626';
+  document.getElementById('empName').value = '';
+  document.getElementById('empPhone').value = '';
+  document.getElementById('empIdCard').value = '';
+  document.getElementById('empJoinDate').value = todayStr();
+  document.getElementById('empRole').value = 'staff';
+  document.getElementById('empAddress').value = '';
+  openModal('employeeModal');
+}
+
+function saveEmployee() {
+  var editId = document.getElementById('empEditId').value;
+  var account = document.getElementById('empAccount').value.trim();
+  var password = document.getElementById('empPassword').value;
+  var name = document.getElementById('empName').value.trim();
+  var phone = document.getElementById('empPhone').value.trim();
+  var idCard = document.getElementById('empIdCard').value.trim();
+  var joinDate = document.getElementById('empJoinDate').value;
+  var role = document.getElementById('empRole').value;
+  var address = document.getElementById('empAddress').value.trim();
+  if (!account) { alert('请输入账号'); return; }
+  var btn = document.getElementById('btnSaveEmployee');
+  btn.disabled = true; btn.textContent = '保存中...';
+
+  if (editId) {
+    // 更新已有员工
+    var updateData = { name: name, phone: phone, id_card: idCard, join_date: joinDate, role: role, address: address };
+    if (password) { updateData.password = password; }
+    supabase.from('profiles').update(updateData).eq('id', editId).then(function(res) {
+      btn.disabled = false; btn.textContent = '保存';
+      if (res.error) { alert('更新失败：' + res.error.message); return; }
+      // 同步更新 auth metadata
+      if (password) {
+        supabase.auth.updateUser({ password: password }).catch(function(){});
+      }
+      closeModal('employeeModal');
+      showToast('员工信息已更新');
+      loadEmployees();
+    }).catch(function(err) {
+      btn.disabled = false; btn.textContent = '保存';
+      alert('网络错误：' + (err.message || err));
+    });
+  } else {
+    // 新建员工
+    if (!password) { alert('请输入密码'); btn.disabled = false; btn.textContent = '保存'; return; }
+    supabase.auth.signUp({ email: account + '@erp.local', password: password, options: { data: { role: role, name: name } } }).then(function(res) {
+      if (res.error) { btn.disabled = false; btn.textContent = '保存'; alert('创建失败：' + res.error.message); return; }
+      supabase.from('profiles').insert({
+        id: res.data.user.id, account: account, role: role, name: name, phone: phone,
+        id_card: idCard, join_date: joinDate, address: address, locked: false, store_id: 'default'
+      }).then(function(r) {
+        btn.disabled = false; btn.textContent = '保存';
+        if (r.error) { alert('写入profiles失败：' + r.error.message); return; }
+        closeModal('employeeModal');
+        showToast('员工已添加');
+        loadEmployees();
+      });
+    }).catch(function(err) {
+      btn.disabled = false; btn.textContent = '保存';
+      alert('网络错误：' + (err.message || err));
+    });
+  }
 }
 
 function toggleLock(id, currentlyLocked) {
@@ -1312,30 +1574,63 @@ function updateCategoryFilter() {
 }
 
 function openServiceModal(id) {
-  var name = prompt('服务名称：');
-  if (!name) return;
-  var category = prompt('分类（可选）：')||'';
-  var price = Number(prompt('默认单价（元）：'))||0;
-  var unit = prompt('单位（默认"项"）：')||'项';
-  supabase.from('services').insert([{ name:name, category:category, price:price, unit:unit, store_id:'default' }]).then(function(res){
-    if (res.error) alert('添加失败：'+res.error.message);
-    else { showToast('服务已添加'); loadServices(); }
-  });
+  document.getElementById('svcEditId').value = id || '';
+  document.getElementById('serviceModalTitle').textContent = id ? '编辑服务项目' : '新建服务项目';
+  document.getElementById('svcName').value = '';
+  document.getElementById('svcCategory').value = '';
+  document.getElementById('svcPrice').value = '0';
+  document.getElementById('svcUnit').value = '项';
+  // 加载分类建议
+  loadSvcCategories();
+  if (id) {
+    supabase.from('services').select('*').eq('id',id).single().then(function(res) {
+      if (!res.data) return;
+      var s = res.data;
+      document.getElementById('svcName').value = s.name || '';
+      document.getElementById('svcCategory').value = s.category || '';
+      document.getElementById('svcPrice').value = Number(s.price) || 0;
+      document.getElementById('svcUnit').value = s.unit || '项';
+    });
+  }
+  openModal('serviceModal');
 }
 
-function editService(id) {
-  supabase.from('services').select('*').eq('id',id).single().then(function(res){
-    if (!res.data) return;
-    var s = res.data;
-    var name = prompt('服务名称：',s.name)||s.name;
-    var category = prompt('分类：',s.category||'')||'';
-    var price = Number(prompt('默认单价（元）：',s.price))||s.price;
-    var unit = prompt('单位：',s.unit||'项')||s.unit||'项';
-    supabase.from('services').update({ name:name, category:category, price:price, unit:unit }).eq('id',id).then(function(){
-      showToast('服务已更新'); loadServices();
+function loadSvcCategories() {
+  supabase.from('services').select('category').eq('deleted',false).then(function(res) {
+    var list = document.getElementById('svcCatList');
+    list.innerHTML = '';
+    var cats = {};
+    (res.data||[]).forEach(function(s) { if (s.category) cats[s.category] = true; });
+    Object.keys(cats).forEach(function(c) {
+      var opt = document.createElement('option'); opt.value = c; list.appendChild(opt);
     });
   });
 }
+
+function saveService() {
+  var id = document.getElementById('svcEditId').value;
+  var name = document.getElementById('svcName').value.trim();
+  var category = document.getElementById('svcCategory').value.trim();
+  var price = Number(document.getElementById('svcPrice').value) || 0;
+  var unit = document.getElementById('svcUnit').value.trim() || '项';
+  if (!name) { alert('请输入服务名称'); return; }
+  var data = { name: name, category: category, price: price, unit: unit, store_id: 'default' };
+  var btn = document.getElementById('btnSaveService');
+  btn.disabled = true; btn.textContent = '保存中...';
+  var req = id ? supabase.from('services').update(data).eq('id',id) : supabase.from('services').insert([data]);
+  req.then(function(res) {
+    btn.disabled = false; btn.textContent = '保存';
+    if (res.error) { alert('保存失败：' + res.error.message); return; }
+    closeModal('serviceModal');
+    showToast(id ? '服务已更新' : '服务已添加');
+    loadServices();
+  }).catch(function(err) {
+    btn.disabled = false; btn.textContent = '保存';
+    alert('网络错误：' + (err.message || err));
+  });
+}
+
+function editService(id) { openServiceModal(id); }
 
 function deleteService(id) {
   if (!confirm('确定删除此服务？')) return;
@@ -1347,15 +1642,137 @@ function editEmployee(id) {
   supabase.from('profiles').select('*').eq('id',id).single().then(function(res){
     if (!res.data) return;
     var e = res.data;
-    var name = prompt('姓名：',e.name||'')||e.name||'';
-    var phone = prompt('电话：',e.phone||'')||e.phone||'';
-    var idCard = prompt('身份证号：',e.id_card||'')||e.id_card||'';
-    var joinDate = prompt('入职时间：',e.join_date||'')||e.join_date||'';
-    var address = prompt('家庭住址：',e.address||'')||e.address||'';
-    var role = prompt('角色（admin/manager/staff）：',e.role||'staff')||e.role||'staff';
-    supabase.from('profiles').update({
-      name:name, phone:phone, id_card:idCard, join_date:joinDate, address:address, role:role
-    }).eq('id',id).then(function(){ showToast('员工信息已更新'); loadEmployees(); });
+    document.getElementById('empEditId').value = e.id;
+    document.getElementById('employeeModalTitle').textContent = '编辑员工';
+    document.getElementById('empAccount').value = e.account || '';
+    document.getElementById('empAccount').disabled = true;
+    document.getElementById('empPassword').value = '';
+    document.getElementById('empPassword').style.display = 'none';
+    document.getElementById('empPwdLabel').textContent = '(不改则不填)';
+    document.getElementById('empPwdLabel').style.color = '#94a3b8';
+    document.getElementById('empName').value = e.name || '';
+    document.getElementById('empPhone').value = e.phone || '';
+    document.getElementById('empIdCard').value = e.id_card || '';
+    document.getElementById('empJoinDate').value = e.join_date || todayStr();
+    document.getElementById('empRole').value = e.role || 'staff';
+    document.getElementById('empAddress').value = e.address || '';
+    openModal('employeeModal');
+  });
+}
+
+// ========== 客户 CSV 导出 ==========
+function exportCustomersCSV() {
+  supabase.from('customers').select('*').eq('deleted',false).order('created_at',{ascending:false}).then(function(res) {
+    var list = res.data||[];
+    var csv = '\uFEFF客户名称,电话,地址,备注,联系人姓名,联系人电话,联系人职务\n';
+    list.forEach(function(c) {
+      var contacts = [];
+      try { contacts = JSON.parse(c.contacts||'[]'); } catch(e) {}
+      if (contacts.length === 0) contacts = [{}];
+      contacts.forEach(function(ct) {
+        csv += [csvCell(c.name),csvCell(c.phone),csvCell(c.address),csvCell(c.note),csvCell(ct.name),csvCell(ct.phone),csvCell(ct.title)].join(',') + '\n';
+      });
+    });
+    var blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '客户列表_'+todayStr()+'.csv'; a.click();
+    showToast('导出成功，共 '+list.length+' 条');
+  });
+}
+// ========== 服务项目 CSV 导出 ==========
+function exportServicesCSV() {
+  supabase.from('services').select('*').eq('deleted',false).order('created_at',{ascending:false}).then(function(res) {
+    var list = res.data||[];
+    var csv = '\uFEFF服务名称,分类,默认单价,单位\n';
+    list.forEach(function(s) {
+      csv += [csvCell(s.name),csvCell(s.category),Number(s.price)||0,csvCell(s.unit||'项')].join(',') + '\n';
+    });
+    var blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '服务项目_'+todayStr()+'.csv'; a.click();
+    showToast('导出成功，共 '+list.length+' 条');
+  });
+}
+// ========== 服务项目 CSV 导入 ==========
+function importServicesCSV(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result;
+    var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    if (lines.length < 2) { alert('CSV 无数据'); return; }
+    var header = lines[0].split(',').map(function(h){ return h.trim(); });
+    var nameIdx = header.indexOf('服务名称'); if (nameIdx<0) nameIdx = header.indexOf('name');
+    var catIdx = header.indexOf('分类'); if (catIdx<0) catIdx = header.indexOf('category');
+    var priceIdx = header.indexOf('默认单价'); if (priceIdx<0) priceIdx = header.indexOf('price');
+    var unitIdx = header.indexOf('单位'); if (unitIdx<0) unitIdx = header.indexOf('unit');
+    if (nameIdx < 0) { alert('CSV 缺少"服务名称"列'); return; }
+    var toInsert = [];
+    for (var i=1;i<lines.length;i++) {
+      var r = lines[i].split(',').map(function(v){ return v.trim(); });
+      if (!r[nameIdx]) continue;
+      toInsert.push({
+        name: r[nameIdx],
+        category: catIdx>=0 ? r[catIdx] : '',
+        price: priceIdx>=0 ? (Number(r[priceIdx])||0) : 0,
+        unit: unitIdx>=0 ? r[unitIdx] : '项',
+        store_id: 'default'
+      });
+    }
+    if (!toInsert.length) { alert('无有效数据'); return; }
+    supabase.from('services').insert(toInsert).then(function(res) {
+      if (res.error) { alert('导入失败：'+res.error.message); return; }
+      showToast('成功导入 '+toInsert.length+' 条');
+      loadServices();
+    });
+  };
+  reader.readAsText(input.files[0]);
+  input.value = '';
+}
+// ========== 分类管理 ==========
+function toggleCategoryManager() {
+  var dd = document.getElementById('categoryDropdown');
+  if (dd.style.display === 'none' || !dd.style.display) {
+    // 加载分类列表
+    supabase.from('services').select('category').eq('deleted',false).then(function(res) {
+      var cats = {};
+      (res.data||[]).forEach(function(s) { if (s.category) cats[s.category] = true; });
+      var html = '<div style="font-size:13px;margin-bottom:6px;color:#475569;font-weight:600">分类列表</div>';
+      Object.keys(cats).forEach(function(c) {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px">';
+        html += '<span>'+esc(c)+'</span>';
+        html += '<button class="btn btn-sm btn-danger" data-cat="'+c.replace(/"/g,'&quot;')+'" onclick="deleteCatBtn(this)" style="padding:2px 6px">×</button>';
+        html += '</div>';
+      });
+      html += '<div style="margin-top:8px;display:flex;gap:4px">';
+      html += '<input id="newCategoryName" placeholder="新分类名" style="flex:1;padding:4px 8px;border:1px solid #e2e8f0;border-radius:4px;font-size:12px">';
+      html += '<button class="btn btn-sm btn-primary" onclick="addCategory()" style="padding:4px 8px">添加</button>';
+      html += '</div>';
+      if (Object.keys(cats).length === 0) html += '<div style="font-size:12px;color:#94a3b8;padding:8px 0">暂无分类，在服务项目中添加分类即可自动创建。</div>';
+      dd.innerHTML = html;
+      dd.style.display = 'block';
+    });
+  } else {
+    dd.style.display = 'none';
+  }
+}
+function addCategory() {
+  var name = document.getElementById('newCategoryName').value.trim();
+  if (!name) { alert('请输入分类名称'); return; }
+  // 分类不需要单独的表，插入一个占位服务来"注册"分类，然后立即软删除
+  supabase.from('services').insert([{ name: '_分类占位_'+name, category: name, price: 0, unit: '项', deleted: true, store_id: 'default' }]).then(function(res) {
+    if (res.error) { alert('添加失败：'+res.error.message); return; }
+    showToast('分类已添加');
+    toggleCategoryManager(); // 刷新列表
+    loadServices();
+  });
+}
+function deleteCatBtn(btn) { deleteCategory(btn.getAttribute('data-cat')); }
+function deleteCategory(catName) {
+  if (!confirm('确定删除分类"'+catName+'"？相关的服务项目不会被删除，仅移除分类标记。')) return;
+  // 将使用该分类的服务项目归类设为空
+  supabase.from('services').update({ category: '' }).eq('category', catName).eq('deleted', false).then(function() {
+    showToast('分类已删除，相关项目移至"未分类"');
+    toggleCategoryManager();
+    loadServices();
   });
 }
 
@@ -1369,8 +1786,8 @@ function execAdvSearch() {
   var payStatus = document.getElementById('advPayStatus').value;
   var prodStatus = document.getElementById('advProdStatus').value;
   var q = supabase.from('orders').select('*, customers(name)',{count:'exact'}).eq('deleted',false);
-  if (startDate) q = q.gte('created_at',startDate);
-  if (endDate) q = q.lte('created_at',endDate);
+  if (startDate) q = q.gte('order_date',startDate);
+  if (endDate) q = q.lte('order_date',endDate);
   if (customer) q = q.ilike('customer_name','%'+customer+'%');
   if (contact) q = q.ilike('contact','%'+contact+'%');
   if (payStatus) q = q.eq('payment_status',payStatus);

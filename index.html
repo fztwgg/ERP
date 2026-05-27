@@ -646,11 +646,11 @@ function loadOrders() {
   if (tab==='today') q = q.eq('order_date',today);
   else if (tab==='yesterday') { var y=new Date(); y.setDate(y.getDate()-1); var ys=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0'); q=q.eq('order_date',ys); }
   else if (tab==='week') { var ws=new Date(); ws.setDate(ws.getDate()-6); q=q.gte('order_date',formatDate(ws)); }
-  else if (tab==='pending') q=q.eq('production_status','pending');
-  else if (tab==='production') q=q.eq('production_status','production');
-  else if (tab==='done') q=q.eq('production_status','done');
-  else if (tab==='delivered') q=q.eq('production_status','delivered');
-  else if (tab==='invoiced') q=q.eq('production_status','invoiced');
+  else if (tab==='pending') q=q.eq('status','pending');
+  else if (tab==='production') q=q.eq('status','production');
+  else if (tab==='done') q=q.eq('status','done');
+  else if (tab==='delivered') q=q.eq('status','delivered');
+  else if (tab==='invoiced') q=q.eq('status','invoiced');
   else if (tab==='settled') q=q.eq('payment_status','已结算');
   else if (tab==='unsettled') q=q.eq('payment_status','未结算');
   // 分页
@@ -667,14 +667,14 @@ function renderOrdersTable() {
   var html = '';
   for (var i=0;i<ordersData.length;i++) {
     var o = ordersData[i];
-    var prodClass = o.production_status==='pending'?'status-pending':o.production_status==='production'?'status-production':o.production_status==='done'?'status-done':o.production_status==='delivered'?'status-delivered':'status-settled';
-    var prodLabel = {pending:'待确认',production:'生产中',done:'已完工',delivered:'已送货',invoiced:'已开票'}[o.production_status]||o.production_status;
+    var prodClass = o.status==='pending'?'status-pending':o.status==='production'?'status-production':o.status==='done'?'status-done':o.status==='delivered'?'status-delivered':'status-settled';
+    var prodLabel = {pending:'待确认',production:'生产中',done:'已完工',delivered:'已送货',invoiced:'已开票'}[o.status]||o.status;
     var payClass = o.payment_status==='已结算'?'status-settled':'status-pending';
     html += '<tr>';
     html += '<td><input type="checkbox" '+(o.payment_status==='已结算'?'disabled ':'')+'data-id="'+o.id+'" onchange="onOrderCheck(this)"></td>';
     html += '<td>'+esc(o.order_no||'')+'</td>';
     html += '<td>'+esc((o.customers&&o.customers.name)||o.customer_name||'')+'</td>';
-    html += '<td>'+esc(o.contact||'')+'</td>';
+    html += '<td>'+esc(o.contact_name||'')+'</td>';
     html += '<td>'+esc(o.project_name||'')+'</td>';
     html += '<td class="money">¥'+(Number(o.total_amount)||0).toFixed(2)+'</td>';
     html += '<td><span class="status-tag '+prodClass+'">'+prodLabel+'</span></td>';
@@ -720,7 +720,7 @@ function execOrderSearch() {
   var kw = document.getElementById('orderSearchInput').value.trim();
   if (!kw) { loadOrders(); return; }
   supabase.from('orders').select('*, customers(name)',{count:'exact'}).eq('deleted',false)
-    .or('order_no.ilike.%'+kw+'%,customer_name.ilike.%'+kw+'%,project_name.ilike.%'+kw+'%,contact.ilike.%'+kw+'%')
+    .or('order_no.ilike.%'+kw+'%,customer_name.ilike.%'+kw+'%,project_name.ilike.%'+kw+'%,contact_name.ilike.%'+kw+'%')
     .order('created_at',{ascending:false}).then(function(res){
     ordersData=res.data||[]; ordersTotalCount=res.count||0; ordersSelected={}; ordersCurrentPage=1;
     renderOrdersTable(); renderOrdersPagination();
@@ -901,10 +901,10 @@ function saveOrder() {
     order_no: document.getElementById('omOrderNo').value,
     customer_id: customerId,
     customer_name: customerName,
-    contact: document.getElementById('omContactInput').value.trim(),
+    contact_name: document.getElementById('omContactInput').value.trim(),
     project_name: projectName,
     production_req: document.getElementById('omProductionReq').value.trim(),
-    production_status: document.querySelector('#progressSteps .progress-step.active').getAttribute('data-step'),
+    status: document.querySelector('#progressSteps .progress-step.active').getAttribute('data-step'),
     order_date: document.getElementById('omOrderDate').value,
     items: JSON.stringify(items),
     total_amount: total,
@@ -927,12 +927,12 @@ function editOrder(id, readonly) {
     document.getElementById('omCustomerInput').value = o.customer_name||'';
     document.getElementById('omCustomerId').value = o.customer_id||'';
     document.getElementById('omCustomerName').value = o.customer_name||'';
-    document.getElementById('omContactInput').value = o.contact||'';
+    document.getElementById('omContactInput').value = o.contact_name||'';
     document.getElementById('omOrderNo').value = o.order_no||'';
     document.getElementById('omOrderDate').value = o.order_date||'';
     document.getElementById('omProjectName').value = o.project_name||'';
     document.getElementById('omProductionReq').value = o.production_req||'';
-    setProgress(o.production_status||'pending');
+    setProgress(o.status||'pending');
     // 填充明细
     var tbody = document.getElementById('omItemsBody'); tbody.innerHTML='';
     try {
@@ -998,10 +998,10 @@ function updateOrder(id) {
   var order = {
     customer_id: document.getElementById('omCustomerId').value || null,
     customer_name: customerName,
-    contact: document.getElementById('omContactInput').value.trim(),
+    contact_name: document.getElementById('omContactInput').value.trim(),
     project_name: projectName,
     production_req: document.getElementById('omProductionReq').value.trim(),
-    production_status: document.querySelector('#progressSteps .progress-step.active').getAttribute('data-step'),
+    status: document.querySelector('#progressSteps .progress-step.active').getAttribute('data-step'),
     order_date: document.getElementById('omOrderDate').value,
     items: JSON.stringify(items),
     total_amount: total,
@@ -1027,7 +1027,7 @@ function printOrderFromData(o) {
   var html = '<div style="padding:20px;font-family:SimSun,serif;max-width:800px;margin:0 auto">';
   html += '<h2 style="text-align:center;margin-bottom:4px">制作结算单</h2>';
   html += '<div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px">';
-  html += '<span>客户：'+esc(o.customer_name||'')+'　联系人：'+esc(o.contact||'')+'　订单号：'+esc(o.order_no||'')+'</span>';
+  html += '<span>客户：'+esc(o.customer_name||'')+'　联系人：'+esc(o.contact_name||'')+'　订单号：'+esc(o.order_no||'')+'</span>';
   html += '<span>项目名称：'+esc(o.project_name||'')+'　日期：'+formatDate(o.order_date||o.created_at)+'</span>';
   html += '</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
@@ -1484,11 +1484,10 @@ function saveEmployee() {
   if (editId) {
     // 更新已有员工
     var updateData = { name: name, phone: phone, id_card: idCard, join_date: joinDate, role: role, address: address };
-    if (password) { updateData.password = password; }
     supabase.from('profiles').update(updateData).eq('id', editId).then(function(res) {
       btn.disabled = false; btn.textContent = '保存';
       if (res.error) { alert('更新失败：' + res.error.message); return; }
-      // 同步更新 auth metadata
+      // 同步更新 auth 密码
       if (password) {
         supabase.auth.updateUser({ password: password }).catch(function(){});
       }
@@ -1789,9 +1788,9 @@ function execAdvSearch() {
   if (startDate) q = q.gte('order_date',startDate);
   if (endDate) q = q.lte('order_date',endDate);
   if (customer) q = q.ilike('customer_name','%'+customer+'%');
-  if (contact) q = q.ilike('contact','%'+contact+'%');
+  if (contact) q = q.ilike('contact_name','%'+contact+'%');
   if (payStatus) q = q.eq('payment_status',payStatus);
-  if (prodStatus) q = q.eq('production_status',prodStatus);
+  if (prodStatus) q = q.eq('status',prodStatus);
   q.order('created_at',{ascending:false}).then(function(res) {
     ordersData=res.data||[]; ordersTotalCount=res.count||0; ordersSelected={};
     renderOrdersTable(); renderOrdersPagination();
